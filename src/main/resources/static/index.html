@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Biblioteca BookHub</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; }
+        .container { max-width: 900px; margin: 40px auto; background: #ffffff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        h1 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: left; }
+        th { background: #fafafa; }
+        tr:hover { background: #f0f8ff; }
+        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
+        .prestar { background: #1976d2; color: white; }
+        .devolver { background: #2e7d32; color: white; }
+        .mensaje { margin-top: 16px; color: #d32f2f; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Catalogo de Libros</h1>
+    <p>Selecciona un libro para prestar o devolver. Los cambios se reflejan inmediatamente en la base de datos en memoria.</p>
+    <table>
+        <thead>
+        <tr>
+            <th>ISBN</th>
+            <th>Titulo</th>
+            <th>Autor</th>
+            <th>Categoria</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody id="libros-body"></tbody>
+    </table>
+    <div id="mensaje" class="mensaje"></div>
+</div>
+<script>
+async function cargarLibros() {
+    const cuerpo = document.getElementById('libros-body');
+    const mensaje = document.getElementById('mensaje');
+    cuerpo.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
+    mensaje.textContent = '';
+    try {
+        const respuesta = await fetch('/api/libros');
+        if (!respuesta.ok) {
+            throw new Error('No se pudo obtener la lista de libros');
+        }
+        const libros = await respuesta.json();
+        if (libros.length === 0) {
+            cuerpo.innerHTML = '<tr><td colspan="6">No hay libros registrados.</td></tr>';
+            return;
+        }
+        cuerpo.innerHTML = '';
+        libros.forEach(libro => {
+            const fila = document.createElement('tr');
+            fila.innerHTML = `
+                <td>${libro.isbn}</td>
+                <td>${libro.titulo}</td>
+                <td>${libro.autor}</td>
+                <td>${libro.categoria}</td>
+                <td>${libro.disponible ? 'Disponible' : 'Prestado'}</td>
+                <td>
+                    <button class="prestar" onclick="accionLibro('${libro.isbn}', 'prestar')" ${libro.disponible ? '' : 'disabled'}>Prestar</button>
+                    <button class="devolver" onclick="accionLibro('${libro.isbn}', 'devolver')" ${libro.disponible ? 'disabled' : ''}>Devolver</button>
+                </td>
+            `;
+            cuerpo.appendChild(fila);
+        });
+    } catch (error) {
+        cuerpo.innerHTML = '<tr><td colspan="6">Ocurrio un error al cargar los libros.</td></tr>';
+        mensaje.textContent = error.message;
+    }
+}
+
+async function accionLibro(isbn, accion) {
+    const mensaje = document.getElementById('mensaje');
+    mensaje.textContent = '';
+    try {
+        const respuesta = await fetch(`/api/libros/${isbn}/${accion}`, {
+            method: 'POST'
+        });
+        if (respuesta.status === 404) {
+            throw new Error('Libro no encontrado');
+        }
+        if (!respuesta.ok) {
+            const texto = await respuesta.text();
+            throw new Error(texto || 'No se pudo completar la accion');
+        }
+        await cargarLibros();
+    } catch (error) {
+        mensaje.textContent = error.message;
+    }
+}
+
+cargarLibros();
+</script>
+</body>
+</html>
