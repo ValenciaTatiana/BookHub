@@ -56,10 +56,10 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}/puede-prestar")
-    public ResponseEntity<Map<String, Boolean>> puedePrestar(@PathVariable int id) {
+    public ResponseEntity<Map<String, Object>> puedePrestar(@PathVariable int id) {
         try {
             boolean puede = usuarioService.puedePrestar(id);
-            Map<String, Boolean> respuesta = new HashMap<>();
+            Map<String, Object> respuesta = new HashMap<>();
             respuesta.put("puedePrestar", puede);
             return ResponseEntity.ok(respuesta);
         } catch (IllegalArgumentException e) {
