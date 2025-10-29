@@ -13,9 +13,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 
 @RestController
 @RequestMapping("/api/usuarios")
+@Tag(name = "Usuarios", description = "Gestión de usuarios del sistema bibliotecario")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -24,30 +28,40 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
+    // --- Crear usuario ---
+    @Operation(summary = "Registrar un nuevo usuario", description = "Crea un usuario validando email único y teléfono válido.")
     @PostMapping
     public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
         try {
-            Usuario creado = usuarioService.registrarUsuario(usuario);
-            return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+            int idGenerado = usuarioService.registrarUsuario(usuario);
+            Map<String, Object> respuesta = new HashMap<>();
+            respuesta.put("mensaje", "Usuario registrado correctamente");
+            respuesta.put("usuarioId", idGenerado);
+            return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-
+    // --- Listar todos ---
+    @Operation(summary = "Listar todos los usuarios", description = "Devuelve todos los usuarios registrados.")
     @GetMapping
     public ResponseEntity<List<Usuario>> listarUsuarios() {
         return ResponseEntity.ok(usuarioService.listarUsuarios());
     }
 
+    // --- Buscar por ID ---
+    @Operation(summary = "Obtener un usuario por su ID", description = "Busca un usuario existente.")
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerUsuario(@PathVariable int id) {
         try {
             return ResponseEntity.ok(usuarioService.obtenerUsuarioPorId(id));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
 
+    // --- Contar préstamos activos ---
+    @Operation(summary = "Contar préstamos activos", description = "Devuelve la cantidad de préstamos activos de un usuario.")
     @GetMapping("/{id}/prestamos/activos")
     public ResponseEntity<Map<String, Integer>> contarPrestamosActivos(@PathVariable int id) {
         Map<String, Integer> respuesta = new HashMap<>();
@@ -55,15 +69,32 @@ public class UsuarioController {
         return ResponseEntity.ok(respuesta);
     }
 
+    // --- Validar si puede prestar ---
+    @Operation(summary = "Validar si puede solicitar más préstamos", description = "Verifica la regla RN001 (máximo 3 préstamos activos).")
     @GetMapping("/{id}/puede-prestar")
     public ResponseEntity<Map<String, Object>> puedePrestar(@PathVariable int id) {
         try {
             boolean puede = usuarioService.puedePrestar(id);
             Map<String, Object> respuesta = new HashMap<>();
+            respuesta.put("usuarioId", id);
             respuesta.put("puedePrestar", puede);
             return ResponseEntity.ok(respuesta);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // --- (Opcional) Eliminar usuario si no tiene préstamos activos ---
+    @Operation(summary = "Eliminar usuario", description = "Elimina un usuario si no tiene préstamos activos (Regla RN005).")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarUsuario(@PathVariable int id) {
+        try {
+            usuarioService.validarUsuarioSinPrestamosActivos(id);
+            Map<String, Object> respuesta = new HashMap<>();
+            respuesta.put("mensaje", "Usuario eliminado correctamente (simulado, sin lógica real de borrado)");
+            return ResponseEntity.ok(respuesta);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
 }
