@@ -1,9 +1,23 @@
 package com.bookhub.entity;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "usuarios", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "email")
+})
 public class Usuario {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
+    @Column(nullable = false)
     private String nombre;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(length = 15)
     private String telefono;
 
     public Usuario() {
