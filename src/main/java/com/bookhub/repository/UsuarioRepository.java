@@ -53,7 +53,11 @@ public class UsuarioRepository {
 
     // Buscar por email (para validar que no esté duplicado)
     public Optional<Usuario> findByEmail(String email) {
-        List<Usuario> resultados = jdbcTemplate.query(SQL_SELECT_POR_EMAIL, USUARIO_ROW_MAPPER, email);
+        List<Usuario> resultados = jdbcTemplate.query(
+                "SELECT id, nombre, email, telefono FROM usuarios WHERE email = ?",
+                USUARIO_ROW_MAPPER,
+                email
+        );
         return resultados.stream().findFirst();
     }
 
