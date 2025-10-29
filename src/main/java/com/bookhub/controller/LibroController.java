@@ -1,8 +1,13 @@
 package com.bookhub.controller;
 
+import com.bookhub.dto.LibroEstadoRequest;
+import com.bookhub.dto.LibroRequest;
+import com.bookhub.dto.LibroResponse;
 import com.bookhub.entity.Libro;
 import com.bookhub.service.LibroService;
+import jakarta.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,44 +31,54 @@ public class LibroController {
     }
 
     @PostMapping
-    public ResponseEntity<?> registrarLibro(@RequestBody Libro libro) {
+    public ResponseEntity<?> registrarLibro(@Valid @RequestBody LibroRequest request) {
         try {
-            Libro creado = libroService.registrarLibro(libro);
-            return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+            Libro creado = libroService.registrarLibro(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(libroService.toResponse(creado));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @GetMapping
-    public ResponseEntity<List<Libro>> listarLibros() {
-        return ResponseEntity.ok(libroService.listarLibros());
+    public ResponseEntity<List<LibroResponse>> listarLibros() {
+        List<LibroResponse> respuesta = libroService.listarLibros().stream()
+            .map(libroService::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(respuesta);
     }
 
     @GetMapping("/{isbn}")
     public ResponseEntity<?> obtenerLibro(@PathVariable String isbn) {
         try {
-            return ResponseEntity.ok(libroService.obtenerLibroPorIsbn(isbn));
+            Libro libro = libroService.obtenerLibroPorIsbn(isbn);
+            return ResponseEntity.ok(libroService.toResponse(libro));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<List<Libro>> buscarLibros(@RequestParam("q") String termino) {
-        return ResponseEntity.ok(libroService.buscarLibrosPorTituloOAutor(termino));
+    public ResponseEntity<List<LibroResponse>> buscarLibros(@RequestParam("q") String termino) {
+        List<LibroResponse> respuesta = libroService.buscarLibrosPorTituloOAutor(termino).stream()
+            .map(libroService::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(respuesta);
     }
 
     @GetMapping("/disponibles")
-    public ResponseEntity<List<Libro>> listarDisponibles() {
-        return ResponseEntity.ok(libroService.listarLibrosDisponibles());
+    public ResponseEntity<List<LibroResponse>> listarDisponibles() {
+        List<LibroResponse> respuesta = libroService.listarLibrosDisponibles().stream()
+            .map(libroService::toResponse)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(respuesta);
     }
 
     @PutMapping("/{isbn}")
-    public ResponseEntity<?> actualizarLibro(@PathVariable String isbn, @RequestBody Libro libro) {
+    public ResponseEntity<?> actualizarLibro(@PathVariable String isbn, @Valid @RequestBody LibroRequest request) {
         try {
-            libro.setIsbn(isbn);
-            return ResponseEntity.ok(libroService.actualizarLibro(libro));
+            Libro actualizado = libroService.actualizarLibro(isbn, request);
+            return ResponseEntity.ok(libroService.toResponse(actualizado));
         } catch (IllegalArgumentException | IllegalStateException e) {
             HttpStatus status = e instanceof IllegalArgumentException ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
             return ResponseEntity.status(status).body(e.getMessage());
@@ -71,9 +86,13 @@ public class LibroController {
     }
 
     @PatchMapping("/{isbn}/estado")
-    public ResponseEntity<?> cambiarEstado(@PathVariable String isbn, @RequestParam("disponible") boolean disponible) {
+    public ResponseEntity<?> cambiarEstado(
+        @PathVariable String isbn,
+        @Valid @RequestBody LibroEstadoRequest request
+    ) {
         try {
-            return ResponseEntity.ok(libroService.cambiarEstado(isbn, disponible));
+            Libro actualizado = libroService.cambiarEstado(isbn, request.getDisponible());
+            return ResponseEntity.ok(libroService.toResponse(actualizado));
         } catch (IllegalArgumentException | IllegalStateException e) {
             HttpStatus status = e instanceof IllegalArgumentException ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
             return ResponseEntity.status(status).body(e.getMessage());
