@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import com.bookhub.dto.UsuarioRequest;
+import com.bookhub.dto.UsuarioResponse;
+import java.util.stream.Collectors;
+
 
 
 
@@ -33,9 +37,15 @@ public class UsuarioController {
     // --- Crear usuario ---
     @Operation(summary = "Registrar un nuevo usuario", description = "Crea un usuario validando email único y teléfono válido.")
     @PostMapping
-    public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
+    public ResponseEntity<?> registrarUsuario(@RequestBody UsuarioRequest request) {
         try {
-            int idGenerado = usuarioService.registrarUsuario(usuario);
+            Usuario nuevo = new Usuario();
+            nuevo.setNombre(request.getNombre());
+            nuevo.setEmail(request.getEmail());
+            nuevo.setTelefono(request.getTelefono());
+
+            int idGenerado = usuarioService.registrarUsuario(nuevo);
+
             Map<String, Object> respuesta = new HashMap<>();
             respuesta.put("mensaje", "Usuario registrado correctamente");
             respuesta.put("usuarioId", idGenerado);
@@ -47,8 +57,12 @@ public class UsuarioController {
     // --- Listar todos ---
     @Operation(summary = "Listar todos los usuarios", description = "Devuelve todos los usuarios registrados.")
     @GetMapping
-    public ResponseEntity<List<Usuario>> listarUsuarios() {
-        return ResponseEntity.ok(usuarioService.listarUsuarios());
+    public ResponseEntity<List<UsuarioResponse>> listarUsuarios() {
+        List<UsuarioResponse> usuarios = usuarioService.listarUsuarios()
+                .stream()
+                .map(u -> new UsuarioResponse(u.getId(), u.getNombre(), u.getEmail(), u.getTelefono()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(usuarios);
     }
 
     // --- Buscar por ID ---
@@ -56,7 +70,9 @@ public class UsuarioController {
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerUsuario(@PathVariable int id) {
         try {
-            return ResponseEntity.ok(usuarioService.obtenerUsuarioPorId(id));
+            Usuario u = usuarioService.obtenerUsuarioPorId(id);
+            UsuarioResponse respuesta = new UsuarioResponse(u.getId(), u.getNombre(), u.getEmail(), u.getTelefono());
+            return ResponseEntity.ok(respuesta);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
@@ -86,7 +102,7 @@ public class UsuarioController {
         }
     }
 
-    // --- (Opcional) Eliminar usuario si no tiene préstamos activos ---
+    // --- Eliminar usuario si no tiene préstamos activos ---
     @Operation(summary = "Eliminar usuario", description = "Elimina un usuario si no tiene préstamos activos (Regla RN005).")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminarUsuario(@PathVariable int id) {
