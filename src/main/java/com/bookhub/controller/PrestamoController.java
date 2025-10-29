@@ -4,7 +4,6 @@ import com.bookhub.entity.Libro;
 import com.bookhub.entity.Prestamo;
 import com.bookhub.service.PrestamoService;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +20,6 @@ public class PrestamoController {
 
     private final PrestamoService prestamoService;
 
-    @Autowired
     public PrestamoController(PrestamoService prestamoService) {
         this.prestamoService = prestamoService;
     }

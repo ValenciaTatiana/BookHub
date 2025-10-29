@@ -1,35 +1,17 @@
-package com.bookhub.entity;
+package com.bookhub.dto;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+public class LibroResponse {
 
-@Entity
-@Table(name = "libros")
-public class Libro {
-
-    @Id
-    @Column(length = 20, nullable = false)
     private String isbn;
-
-    @Column(length = 100, nullable = false)
     private String titulo;
-
-    @Column(length = 100, nullable = false)
     private String autor;
-
-    @Column(length = 50, nullable = false)
     private String categoria;
+    private boolean disponible;
 
-    @Column(name = "estado", nullable = false)
-    private boolean disponible = true;
-
-    public Libro() {
-        // Constructor por defecto requerido por JPA
+    public LibroResponse() {
     }
 
-    public Libro(String isbn, String titulo, String autor, String categoria, boolean disponible) {
+    public LibroResponse(String isbn, String titulo, String autor, String categoria, boolean disponible) {
         this.isbn = isbn;
         this.titulo = titulo;
         this.autor = autor;
@@ -75,16 +57,5 @@ public class Libro {
 
     public void setDisponible(boolean disponible) {
         this.disponible = disponible;
-    }
-
-    public void prestar() {
-        if (!disponible) {
-            throw new IllegalStateException("El libro ya esta prestado");
-        }
-        disponible = false;
-    }
-
-    public void devolver() {
-        disponible = true;
     }
 }
