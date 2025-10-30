@@ -3,6 +3,8 @@ package com.bookhub.service;
 import com.bookhub.entity.Libro;
 import com.bookhub.entity.Prestamo;
 import com.bookhub.repository.PrestamoRepository;
+import com.bookhub.dto.PrestamoRequest;
+import com.bookhub.dto.PrestamoResponse;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -66,4 +68,28 @@ public class PrestamoService {
     public List<Libro> consultarLibrosDisponibles() {
         return libroService.listarLibrosDisponibles();
     }
+
+    // ✅ Deja solo estos dos métodos, sin duplicar
+    public Prestamo fromRequest(PrestamoRequest request) {
+        Prestamo prestamo = new Prestamo();
+        prestamo.setUsuarioId(request.getUsuarioId());
+        prestamo.setLibroIsbn(request.getLibroIsbn());
+        prestamo.setFechaPrestamo(request.getFechaPrestamo());
+        prestamo.setFechaDevolucion(request.getFechaDevolucion());
+        prestamo.setEstado(true); // valor por defecto
+        return prestamo;
+    }
+
+    public PrestamoResponse toResponse(Prestamo prestamo) {
+        PrestamoResponse response = new PrestamoResponse();
+        response.setId(prestamo.getId());
+        response.setUsuarioId(prestamo.getUsuarioId());
+        response.setLibroIsbn(prestamo.getLibroIsbn());
+        response.setFechaPrestamo(prestamo.getFechaPrestamo());
+        response.setFechaDevolucion(prestamo.getFechaDevolucion());
+        response.setEstado(prestamo.getEstado());
+        response.setDiasRetraso(prestamo.calcularRetraso());
+        return response;
+    }
 }
+

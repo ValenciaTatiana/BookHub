@@ -1,18 +1,14 @@
 package com.bookhub.controller;
 
+import com.bookhub.dto.PrestamoRequest;
+import com.bookhub.dto.PrestamoResponse;
 import com.bookhub.entity.Libro;
 import com.bookhub.entity.Prestamo;
 import com.bookhub.service.PrestamoService;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/prestamos")
@@ -24,49 +20,54 @@ public class PrestamoController {
         this.prestamoService = prestamoService;
     }
 
-    @PostMapping
-    public ResponseEntity<?> prestarLibro(@RequestBody Prestamo solicitud) {
-        try {
-            Prestamo nuevoPrestamo = prestamoService.realizarPrestamo(
-                solicitud.getUsuarioId(),
-                solicitud.getLibroIsbn()
-            );
-            return new ResponseEntity<>(nuevoPrestamo, HttpStatus.CREATED);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+    // 🔹 Registrar un nuevo préstamo
+    @PostMapping("/registrar")
+    public PrestamoResponse registrarPrestamo(@RequestBody PrestamoRequest request) {
+        Prestamo prestamo = prestamoService.realizarPrestamo(
+                request.getUsuarioId(),
+                request.getLibroIsbn()
+        );
+        return prestamoService.toResponse(prestamo);
     }
 
+    // 🔹 Registrar devolución de un libro
     @PutMapping("/devolver")
-    public ResponseEntity<String> devolverLibro(@RequestBody Prestamo solicitud) {
-        try {
-            prestamoService.realizarDevolucion(
-                solicitud.getUsuarioId(),
-                solicitud.getLibroIsbn()
-            );
-            return new ResponseEntity<>("Devolucion registrada exitosamente.", HttpStatus.OK);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+    public String devolverLibro(@RequestParam Integer usuarioId, @RequestParam String libroIsbn) {
+        prestamoService.realizarDevolucion(usuarioId, libroIsbn);
+        return "Devolución registrada correctamente.";
     }
 
+    // 🔹 Consultar préstamos activos por usuario
+    @GetMapping("/activos/{usuarioId}")
+    public List<PrestamoResponse> obtenerPrestamosActivos(@PathVariable Integer usuarioId) {
+        return prestamoService.consultarActivosPorUsuario(usuarioId)
+                .stream()
+                .map(prestamoService::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    // 🔹 Consultar historial por usuario
+    @GetMapping("/historial/{usuarioId}")
+    public List<PrestamoResponse> obtenerHistorial(@PathVariable Integer usuarioId) {
+        return prestamoService.consultarHistorialPorUsuario(usuarioId)
+                .stream()
+                .map(prestamoService::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    // 🔹 Consultar todos los préstamos activos del sistema
     @GetMapping("/activos")
-    public ResponseEntity<List<Prestamo>> obtenerPrestamosActivos() {
-        return ResponseEntity.ok(prestamoService.consultarPrestamosActivos());
+    public List<PrestamoResponse> obtenerTodosActivos() {
+        return prestamoService.consultarPrestamosActivos()
+                .stream()
+                .map(prestamoService::toResponse)
+                .collect(Collectors.toList());
     }
 
-    @GetMapping("/usuario/{usuarioId}/activos")
-    public ResponseEntity<List<Prestamo>> obtenerActivosPorUsuario(@PathVariable Integer usuarioId) {
-        return ResponseEntity.ok(prestamoService.consultarActivosPorUsuario(usuarioId));
-    }
-
-    @GetMapping("/usuario/{usuarioId}/historial")
-    public ResponseEntity<List<Prestamo>> obtenerHistorialPorUsuario(@PathVariable Integer usuarioId) {
-        return ResponseEntity.ok(prestamoService.consultarHistorialPorUsuario(usuarioId));
-    }
-
+    // 🔹 Consultar libros disponibles
     @GetMapping("/libros-disponibles")
-    public ResponseEntity<List<Libro>> obtenerLibrosDisponibles() {
-        return ResponseEntity.ok(prestamoService.consultarLibrosDisponibles());
+    public List<Libro> obtenerLibrosDisponibles() {
+        return prestamoService.consultarLibrosDisponibles();
     }
 }
+
