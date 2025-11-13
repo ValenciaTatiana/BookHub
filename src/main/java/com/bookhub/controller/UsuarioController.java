@@ -51,6 +51,12 @@ public class UsuarioController {
             respuesta.put("usuarioId", idGenerado);
             return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
         } catch (IllegalArgumentException | IllegalStateException e) {
+            String mensaje = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            // Si la excepción viene por email duplicado, devolvemos 409 Conflict
+            if (mensaje.contains("email") || mensaje.contains("duplic") || mensaje.contains("ya está registrado")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+            }
+            // Para otros problemas, 400 Bad Request
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
