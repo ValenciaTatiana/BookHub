@@ -94,4 +94,17 @@ public class UsuarioRepository {
             rs.getString("telefono")
         );
     }
+
+    private static final String SQL_UPDATE_USUARIO =
+            "UPDATE usuarios SET nombre = ?, email = ?, telefono = ? WHERE id = ?";
+
+    public int actualizar(Usuario usuario) {
+        return jdbcTemplate.update(
+                SQL_UPDATE_USUARIO,
+                usuario.getNombre(),
+                usuario.getEmail(),
+                usuario.getTelefono(),
+                usuario.getId()
+        );
+    }
 }

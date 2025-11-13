@@ -83,4 +83,21 @@ public class UsuarioService {
             throw new IllegalStateException("RN005: El usuario posee préstamos activos");
         }
     }
+
+    public int actualizarUsuario(Usuario usuario) {
+        usuarioRepository.findById(usuario.getId())
+                .orElseThrow(() -> new IllegalArgumentException("No existe usuario con ID " + usuario.getId()));
+
+        // Validar email duplicado
+        usuarioRepository.findByEmail(usuario.getEmail())
+                .filter(u -> u.getId() != usuario.getId())
+                .ifPresent(u -> {
+                    throw new IllegalArgumentException("El email ya está registrado: " + usuario.getEmail());
+                });
+
+        if (usuario.getTelefono() != null && !usuario.getTelefono().matches("^\\d{7,15}$")) {
+            throw new IllegalArgumentException("El número de teléfono no es válido. Debe tener entre 7 y 15 dígitos.");
+        }
+        return usuarioRepository.actualizar(usuario);
+    }
 }

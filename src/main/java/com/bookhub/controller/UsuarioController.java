@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import com.bookhub.dto.UsuarioRequest;
 import com.bookhub.dto.UsuarioResponse;
 import java.util.stream.Collectors;
+import org.springframework.web.bind.annotation.PutMapping;
 
 
 
@@ -119,6 +120,26 @@ public class UsuarioController {
             return ResponseEntity.ok(respuesta);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Actualizar usuario", description = "Permite editar los datos de un usuario existente.")
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarUsuario(@PathVariable int id, @RequestBody UsuarioRequest request) {
+        try {
+            Usuario actualizado = new Usuario();
+            actualizado.setId(id);
+            actualizado.setNombre(request.getNombre());
+            actualizado.setEmail(request.getEmail());
+            actualizado.setTelefono(request.getTelefono());
+
+            int result = usuarioService.actualizarUsuario(actualizado);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("mensaje", "Usuario actualizado correctamente");
+            resp.put("usuarioId", id);
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
