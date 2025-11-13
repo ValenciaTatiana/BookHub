@@ -4,12 +4,14 @@ import com.bookhub.dto.LibroEstadoRequest;
 import com.bookhub.dto.LibroRequest;
 import com.bookhub.dto.LibroResponse;
 import com.bookhub.entity.Libro;
+import com.bookhub.exception.ConflictException;
 import com.bookhub.service.LibroService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +37,8 @@ public class LibroController {
         try {
             Libro creado = libroService.registrarLibro(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(libroService.toResponse(creado));
+        } catch (ConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -79,6 +83,8 @@ public class LibroController {
         try {
             Libro actualizado = libroService.actualizarLibro(isbn, request);
             return ResponseEntity.ok(libroService.toResponse(actualizado));
+        } catch (ConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
             HttpStatus status = e instanceof IllegalArgumentException ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
             return ResponseEntity.status(status).body(e.getMessage());
@@ -96,6 +102,18 @@ public class LibroController {
         } catch (IllegalArgumentException | IllegalStateException e) {
             HttpStatus status = e instanceof IllegalArgumentException ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
             return ResponseEntity.status(status).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{isbn}")
+    public ResponseEntity<?> eliminarLibro(@PathVariable String isbn) {
+        try {
+            libroService.eliminarLibro(isbn);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 }

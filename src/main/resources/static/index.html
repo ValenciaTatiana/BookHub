@@ -435,7 +435,7 @@
                 <p>Registra nuevos titulos y controla la disponibilidad del catalogo.</p>
             </div>
         </div>
-        <p class="message" id="libros-msg" role="status"></p>
+        <p class="message" id="libros-msg" role="status" hidden></p>
         <div class="panel-grid">
             <article class="card">
                 <header>
@@ -511,7 +511,7 @@
                         <button type="button" id="btn-cancelar-edicion" class="ghost">Limpiar seleccion</button>
                     </div>
                 </form>
-                <p class="message subtle" id="editar-libro-msg"></p>
+                <p class="message subtle" id="editar-libro-msg" hidden></p>
             </article>
         </div>
         <article class="card">
@@ -545,7 +545,7 @@
                 <p>Registra integrantes y consulta su actividad de prestamos.</p>
             </div>
         </div>
-        <p class="message" id="usuarios-msg" role="status"></p>
+        <p class="message" id="usuarios-msg" role="status" hidden></p>
         <div class="panel-grid">
             <article class="card">
                 <header>
@@ -585,7 +585,7 @@
                         <button type="button" class="ghost" id="btn-puede-prestar">Validar prestamos</button>
                     </div>
                 </div>
-                <p class="message subtle" id="usuario-detalle"></p>
+                <p class="message subtle" id="usuario-detalle" hidden></p>
             </article>
         </div>
         <article class="card">
@@ -619,7 +619,7 @@
                 <p>Gestiona las entregas y devoluciones de los libros en circulacion.</p>
             </div>
         </div>
-        <p class="message" id="prestamos-msg" role="status"></p>
+        <p class="message" id="prestamos-msg" role="status" hidden></p>
         <div class="panel-grid">
             <article class="card">
                 <header>
@@ -712,6 +712,8 @@ const api = {
     prestamos: '/api/prestamos'
 };
 
+const messageTimers = {};
+
 const summaryElements = {
     totalLibros: document.getElementById('summary-total-libros'),
     librosDisponibles: document.getElementById('summary-libros-disponibles'),
@@ -752,15 +754,61 @@ function setMessage(id, text, type = '') {
     if (!el) {
         return;
     }
-    el.textContent = text || '';
+    const normalized = normalizeMessage(text);
+    el.textContent = normalized;
     el.className = type ? `message ${type}` : 'message';
+
+    if (messageTimers[id]) {
+        clearTimeout(messageTimers[id]);
+        delete messageTimers[id];
+    }
+
+    const shouldShow = Boolean(normalized);
+    el.hidden = !shouldShow;
+    if (shouldShow && type !== 'subtle') {
+        const timeout = type === 'error' ? 7000 : 5000;
+        messageTimers[id] = setTimeout(() => {
+            el.textContent = '';
+            el.className = 'message';
+            el.hidden = true;
+            delete messageTimers[id];
+        }, timeout);
+    }
+}
+
+function normalizeMessage(raw) {
+    if (raw === undefined || raw === null) {
+        return '';
+    }
+    if (typeof raw === 'string') {
+        return raw;
+    }
+    if (typeof raw === 'object') {
+        if (Array.isArray(raw)) {
+            return raw.map((item) => normalizeMessage(item)).join(', ');
+        }
+        if (raw.message) {
+            return normalizeMessage(raw.message);
+        }
+        if (raw.error) {
+            return normalizeMessage(raw.error);
+        }
+        if (raw.errors) {
+            return normalizeMessage(raw.errors);
+        }
+        return JSON.stringify(raw);
+    }
+    return String(raw);
 }
 
 async function parseResponse(res) {
-    if (res.headers.get('content-type')?.includes('application/json')) {
-        return res.json();
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        const json = await res.json();
+        return normalizeMessage(json);
     }
-    return res.text();
+    const text = await res.text();
+    return text || res.statusText || 'Ocurrio un error inesperado';
 }
 
 async function cargarLibros(q = '') {
@@ -805,6 +853,7 @@ function renderLibros(libros) {
             <td>
                 <div class="pill-buttons">
                     <button class="secondary small-btn" data-action="editar">Editar</button>
+                    <button class="ghost small-btn danger" data-action="eliminar">Eliminar</button>
                     <button class="small-btn ${libro.disponible ? 'danger' : 'success'}" data-action="toggle">
                         ${libro.disponible ? 'Marcar prestado' : 'Marcar disponible'}
                     </button>
@@ -813,6 +862,7 @@ function renderLibros(libros) {
         `;
         tr.querySelector('[data-action="editar"]').addEventListener('click', () => cargarLibroEdicion(libro));
         tr.querySelector('[data-action="toggle"]').addEventListener('click', () => cambiarEstadoLibro(libro));
+        tr.querySelector('[data-action="eliminar"]').addEventListener('click', () => eliminarLibro(libro));
         body.appendChild(tr);
     });
 }
@@ -905,6 +955,27 @@ async function cambiarEstadoLibro(libro) {
         await cargarLibros();
     } catch (error) {
         setMessage('libros-msg', error.message || 'No se pudo actualizar el estado del libro', 'error');
+    }
+}
+
+async function eliminarLibro(libro) {
+    const label = libro.titulo ? `${libro.titulo} (${libro.isbn})` : libro.isbn;
+    const confirmed = window.confirm(`Eliminar el libro ${label}? Esta accion no se puede deshacer.`);
+    if (!confirmed) {
+        return;
+    }
+    try {
+        const res = await fetch(`${api.libros}/${encodeURIComponent(libro.isbn)}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) {
+            throw new Error(await parseResponse(res));
+        }
+        setMessage('libros-msg', `Libro ${libro.isbn} eliminado correctamente`, 'success');
+        await cargarLibros();
+        limpiarEdicionLibro();
+    } catch (error) {
+        setMessage('libros-msg', error.message || 'No se pudo eliminar el libro', 'error');
     }
 }
 

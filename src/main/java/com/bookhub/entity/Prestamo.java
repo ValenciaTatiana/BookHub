@@ -30,6 +30,10 @@ public class Prestamo {
                 return 0; // Ya fue devuelto
             }
 
+            if (this.fechaDevolucion == null) {
+                return 0; // No hay fecha de referencia
+            }
+
             LocalDate hoy = LocalDate.now();
             if (hoy.isAfter(this.fechaDevolucion)) {
                 // Retraso en días

@@ -45,6 +45,8 @@ public class PrestamoRepository {
         "INNER JOIN libros l ON l.isbn = p.libro_isbn " +
         "WHERE p.estado = FALSE " +
         "ORDER BY p.fecha_devolucion DESC";
+    private static final String SQL_EXISTE_PRESTAMO_POR_LIBRO =
+        "SELECT COUNT(*) FROM prestamos WHERE libro_isbn = ?";
 
     private static final RowMapper<Prestamo> PRESTAMO_ROW_MAPPER = PrestamoRepository::mapRow;
 
@@ -92,6 +94,11 @@ public class PrestamoRepository {
 
     public List<Prestamo> findPrestamosDisponibles() {
         return jdbcTemplate.query(SQL_SELECT_PRESTAMOS_DISPONIBLES, PRESTAMO_ROW_MAPPER);
+    }
+
+    public boolean existePrestamoPorLibro(String isbn) {
+        Integer count = jdbcTemplate.queryForObject(SQL_EXISTE_PRESTAMO_POR_LIBRO, Integer.class, isbn);
+        return count != null && count > 0;
     }
 
     private static Prestamo mapRow(ResultSet rs, int rowNum) throws SQLException {

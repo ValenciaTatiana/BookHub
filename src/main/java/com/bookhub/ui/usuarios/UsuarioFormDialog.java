@@ -1,6 +1,7 @@
 package com.bookhub.ui.usuarios;
 
 import com.bookhub.entity.Usuario;
+import com.bookhub.ui.common.ApiClient;
 import com.google.gson.Gson;
 
 import javax.swing.*;

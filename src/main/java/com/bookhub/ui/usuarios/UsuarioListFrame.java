@@ -1,6 +1,7 @@
 package com.bookhub.ui.usuarios;
 
 import com.bookhub.entity.Usuario;
+import com.bookhub.ui.common.ApiClient;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;

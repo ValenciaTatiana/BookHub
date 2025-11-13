@@ -3,7 +3,9 @@ package com.bookhub.service;
 import com.bookhub.dto.LibroRequest;
 import com.bookhub.dto.LibroResponse;
 import com.bookhub.entity.Libro;
+import com.bookhub.exception.ConflictException;
 import com.bookhub.repository.LibroRepository;
+import com.bookhub.repository.PrestamoRepository;
 import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
@@ -12,9 +14,11 @@ import org.springframework.stereotype.Service;
 public class LibroService {
 
     private final LibroRepository libroRepository;
+    private final PrestamoRepository prestamoRepository;
 
-    public LibroService(LibroRepository libroRepository) {
+    public LibroService(LibroRepository libroRepository, PrestamoRepository prestamoRepository) {
         this.libroRepository = libroRepository;
+        this.prestamoRepository = prestamoRepository;
     }
 
     @Transactional
@@ -28,7 +32,7 @@ public class LibroService {
             throw new IllegalArgumentException("Debe especificar un ISBN para registrar el libro");
         }
         if (libroRepository.existsById(libro.getIsbn())) {
-            throw new IllegalStateException("Ya existe un libro con el ISBN " + libro.getIsbn());
+            throw new ConflictException("Ya existe un libro con el ISBN " + libro.getIsbn());
         }
         return libroRepository.save(libro);
     }
@@ -147,5 +151,17 @@ public class LibroService {
         if (request.getDisponible() != null) {
             destino.setDisponible(request.getDisponible());
         }
+    }
+
+    @Transactional
+    public void eliminarLibro(String isbn) {
+        Libro libro = obtenerLibroPorIsbn(isbn);
+        if (!libro.isDisponible()) {
+            throw new IllegalStateException("No se puede eliminar un libro prestado actualmente");
+        }
+        if (prestamoRepository.existePrestamoPorLibro(isbn)) {
+            throw new IllegalStateException("No se puede eliminar un libro con prestamos registrados");
+        }
+        libroRepository.delete(libro);
     }
 }

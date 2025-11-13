@@ -1,20 +1,27 @@
-package com.bookhub.ui.usuarios;
+package com.bookhub.ui.common;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Cliente HTTP sencillo para consumir la API REST desde Swing.
+ */
 public class ApiClient {
     private final String baseUrl;
     private final Gson gson = new Gson();
 
     public ApiClient(String baseUrl) {
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length()-1) : baseUrl;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
     private HttpURLConnection createConnection(String endpoint, String method) throws IOException {
@@ -24,17 +31,23 @@ public class ApiClient {
         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
         conn.setRequestProperty("Accept", "application/json");
         conn.setDoInput(true);
-        if (method.equals("POST") || method.equals("PUT")) conn.setDoOutput(true);
+        if (method.equals("POST") || method.equals("PUT") || method.equals("PATCH")) {
+            conn.setDoOutput(true);
+        }
         return conn;
     }
 
     private String readResponse(HttpURLConnection conn) throws IOException {
         InputStream is = conn.getResponseCode() < 400 ? conn.getInputStream() : conn.getErrorStream();
-        if (is == null) return "";
+        if (is == null) {
+            return "";
+        }
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             String line;
-            while ((line = br.readLine()) != null) sb.append(line);
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
             return sb.toString();
         }
     }
@@ -53,6 +66,10 @@ public class ApiClient {
 
     public ApiResponse put(String endpoint, Object body) throws IOException {
         return sendWithBody("PUT", endpoint, body);
+    }
+
+    public ApiResponse patch(String endpoint, Object body) throws IOException {
+        return sendWithBody("PATCH", endpoint, body);
     }
 
     public ApiResponse delete(String endpoint) throws IOException {
@@ -77,9 +94,14 @@ public class ApiClient {
     public static class ApiResponse {
         public final int status;
         public final String body;
+
         public ApiResponse(int status, String body) {
             this.status = status;
             this.body = body;
+        }
+
+        public boolean isSuccess() {
+            return status >= 200 && status < 300;
         }
     }
 }

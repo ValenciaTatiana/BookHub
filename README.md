@@ -74,6 +74,7 @@ Base URL por defecto: `http://localhost:8080`
 - `GET /api/libros/buscar?q=` - Buscar por titulo o autor
 - `PUT /api/libros/{isbn}` - Actualizar informacion
 - `PATCH /api/libros/{isbn}/estado?disponible=true|false` - Cambiar estado disponible/prestado
+- `DELETE /api/libros/{isbn}` - Eliminar un libro disponible
 
 ### Usuarios (RF006-RF008, RN001, RN005)
 - `POST /api/usuarios` - Registrar usuario
@@ -103,6 +104,27 @@ Base URL por defecto: `http://localhost:8080`
   - Registrar, buscar, editar y cambiar estado de libros.
   - Registrar usuarios y evaluar si pueden solicitar prestamos.
   - Crear/devolver prestamos, ver activos globales, activos por usuario, historial y libros disponibles.
+
+## Interfaz Swing de escritorio
+
+Ademas del panel web se incluye una UI Swing pensada para laboratorios locales:
+
+- `com.bookhub.ui.libros.LibroSwingLauncher`: tabla con filtro en vivo (titulo/autor), formulario de alta/edicion (ISBN, titulo, autor, categoria, estado) y confirmacion de eliminación. Maneja respuestas 400/404/409/500 y valida ISBN unico antes de llamar la API.
+- `com.bookhub.ui.usuarios.SwingLauncher`: listado y formulario de usuarios ya existente, ahora reutilizando el mismo cliente REST.
+
+Para ejecutarlas:
+
+```bash
+# 1) Levanta la API
+./mvnw spring-boot:run
+
+# 2) En una ventana aparte (Linux/macOS)
+./mvnw exec:java -Dexec.mainClass=com.bookhub.ui.libros.LibroSwingLauncher
+# o para Windows
+mvnw.cmd exec:java -Dexec.mainClass=com.bookhub.ui.libros.LibroSwingLauncher
+```
+
+Usa la propiedad `-Dbookhub.api=http://host:puerto/api` si el backend corre en otra URL.
 
 ## Scripts SQL
 
