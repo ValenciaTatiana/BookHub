@@ -17,6 +17,7 @@ public class ReportesFrame extends JFrame {
     private DefaultTableModel modeloTabla;
     private JButton btnGenerar, btnListar, btnEliminar, btnBuscar;
 
+    private JLabel lblEstado;
     public ReportesFrame() {
         setTitle("Módulo de Reportes - BookHub");
         setSize(800, 500);
@@ -38,6 +39,11 @@ public class ReportesFrame extends JFrame {
         btnListar = new JButton("Listar");
         btnBuscar = new JButton("Buscar por ID");
         btnEliminar = new JButton("Eliminar");
+
+        lblEstado = new JLabel("Listo.");
+        lblEstado.setForeground(Color.BLUE);
+        panelSuperior.add(lblEstado);
+
 
         panelSuperior.add(btnGenerar);
         panelSuperior.add(btnListar);
@@ -69,63 +75,94 @@ public class ReportesFrame extends JFrame {
             return;
         }
 
-        try {
-            btnGenerar.setEnabled(false);
-            URL url = new URL("http://localhost:8080/api/reportes");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                try {
+                    actualizarEstado("Generando reporte...");
+                    habilitarBotones(false);
 
-            String jsonInput = String.format("{\"descripcion\":\"%s\", \"tipo\":\"%s\"}", descripcion, tipo);
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(jsonInput.getBytes());
-                os.flush();
+                    URL url = new URL("http://localhost:8080/api/reportes");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setDoOutput(true);
+
+                    String jsonInput = String.format("{\"descripcion\":\"%s\", \"tipo\":\"%s\"}", descripcion, tipo);
+                    try (OutputStream os = conn.getOutputStream()) {
+                        os.write(jsonInput.getBytes());
+                        os.flush();
+                    }
+
+                    int status = conn.getResponseCode();
+                    if (status == 200 || status == 201) {
+                        JOptionPane.showMessageDialog(null, "Reporte generado exitosamente.");
+                        txtDescripcion.setText("");
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Error al generar reporte: " + status);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage());
+                }
+                return null;
             }
 
-            if (conn.getResponseCode() == 200 || conn.getResponseCode() == 201) {
-                JOptionPane.showMessageDialog(this, "Reporte generado exitosamente.");
-                txtDescripcion.setText("");
-            } else {
-                JOptionPane.showMessageDialog(this, "Error al generar reporte: " + conn.getResponseCode());
+            @Override
+            protected void done() {
+                habilitarBotones(true);
+                actualizarEstado("Listo.");
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
-        } finally {
-            btnGenerar.setEnabled(true);
-        }
+        };
+        worker.execute();
     }
+
 
     private void listarReportes() {
-        try {
-            URL url = new URL("http://localhost:8080/api/reportes");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                try {
+                    actualizarEstado("Cargando reportes...");
+                    habilitarBotones(false);
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String response = reader.lines().reduce("", (a, b) -> a + b);
-            reader.close();
+                    URL url = new URL("http://localhost:8080/api/reportes");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
 
-            modeloTabla.setRowCount(0);
-            if (response.equals("[]")) {
-                JOptionPane.showMessageDialog(this, "No hay reportes disponibles.");
-                return;
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    String response = reader.lines().reduce("", (a, b) -> a + b);
+                    reader.close();
+
+                    modeloTabla.setRowCount(0);
+                    if (response.equals("[]")) {
+                        JOptionPane.showMessageDialog(null, "No hay reportes disponibles.");
+                    } else {
+                        String[] registros = response.split("\\},\\{");
+                        for (String reg : registros) {
+                            Vector<String> fila = new Vector<>();
+                            fila.add(extraerCampo(reg, "id"));
+                            fila.add(extraerCampo(reg, "descripcion"));
+                            fila.add(extraerCampo(reg, "tipo"));
+                            fila.add(extraerCampo(reg, "fechaGeneracion"));
+                            modeloTabla.addRow(fila);
+                        }
+                    }
+
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "Error al listar reportes: " + ex.getMessage());
+                }
+                return null;
             }
 
-            String[] registros = response.split("\\},\\{");
-            for (String reg : registros) {
-                Vector<String> fila = new Vector<>();
-                fila.add(extraerCampo(reg, "id"));
-                fila.add(extraerCampo(reg, "descripcion"));
-                fila.add(extraerCampo(reg, "tipo"));
-                fila.add(extraerCampo(reg, "fechaGeneracion"));
-                modeloTabla.addRow(fila);
+            @Override
+            protected void done() {
+                habilitarBotones(true);
+                actualizarEstado("Listo.");
             }
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error al listar reportes: " + ex.getMessage());
-        }
+        };
+        worker.execute();
     }
+
 
     private void buscarPorId() {
         String id = JOptionPane.showInputDialog(this, "Ingrese el ID del reporte:");
@@ -159,25 +196,41 @@ public class ReportesFrame extends JFrame {
         }
 
         String id = modeloTabla.getValueAt(fila, 0).toString();
-
         int confirm = JOptionPane.showConfirmDialog(this, "¿Eliminar reporte ID " + id + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        try {
-            URL url = new URL("http://localhost:8080/api/reportes/" + id);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("DELETE");
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                try {
+                    actualizarEstado("Eliminando reporte...");
+                    habilitarBotones(false);
 
-            if (conn.getResponseCode() == 200) {
-                JOptionPane.showMessageDialog(this, "Reporte eliminado correctamente.");
-                listarReportes();
-            } else {
-                JOptionPane.showMessageDialog(this, "Error al eliminar reporte.");
+                    URL url = new URL("http://localhost:8080/api/reportes/" + id);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("DELETE");
+
+                    if (conn.getResponseCode() == 200) {
+                        JOptionPane.showMessageDialog(null, "Reporte eliminado correctamente.");
+                        listarReportes();
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Error al eliminar reporte.");
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "Error: " + ex.getMessage());
+                }
+                return null;
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
-        }
+
+            @Override
+            protected void done() {
+                habilitarBotones(true);
+                actualizarEstado("Listo.");
+            }
+        };
+        worker.execute();
     }
+
 
     private String extraerCampo(String json, String campo) {
         try {
@@ -189,6 +242,18 @@ public class ReportesFrame extends JFrame {
             return "";
         }
     }
+
+    private void habilitarBotones(boolean habilitar) {
+        btnGenerar.setEnabled(habilitar);
+        btnListar.setEnabled(habilitar);
+        btnBuscar.setEnabled(habilitar);
+        btnEliminar.setEnabled(habilitar);
+    }
+
+    private void actualizarEstado(String texto) {
+        SwingUtilities.invokeLater(() -> lblEstado.setText(texto));
+    }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(ReportesFrame::new);
