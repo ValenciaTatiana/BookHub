@@ -16,13 +16,19 @@ public class PrestamoService {
     private final PrestamoRepository prestamoRepository;
     private final LibroService libroService;
     private final UsuarioService usuarioService;
+    private final ReservaService reservaService;
+    private final AuditoriaService auditoriaService;
 
     public PrestamoService(PrestamoRepository prestamoRepository,
                            LibroService libroService,
-                           UsuarioService usuarioService) {
+                           UsuarioService usuarioService,
+                           ReservaService reservaService,
+                           AuditoriaService auditoriaService) {
         this.prestamoRepository = prestamoRepository;
         this.libroService = libroService;
         this.usuarioService = usuarioService;
+        this.reservaService = reservaService;
+        this.auditoriaService = auditoriaService;
     }
 
     // ---------------------------
@@ -47,6 +53,12 @@ public class PrestamoService {
         Prestamo guardado = prestamoRepository.save(nuevo);
 
         libroService.marcarComoPrestado(libroIsbn);
+        auditoriaService.registrar(
+            "PRESTAMO",
+            "CREAR",
+            guardado.getId() != null ? guardado.getId().toString() : "N/A",
+            "Préstamo creado: usuario " + usuarioId + ", libro " + libroIsbn
+        );
 
         return guardado;
     }
@@ -63,6 +75,14 @@ public class PrestamoService {
         }
 
         libroService.marcarComoDisponible(libroIsbn);
+        auditoriaService.registrar(
+            "PRESTAMO",
+            "DEVOLVER",
+            libroIsbn,
+            "Devolución registrada para usuario " + usuarioId + ", libro " + libroIsbn
+        );
+        // Atender siguiente reserva (si existe)
+        reservaService.atenderSiguiente(libroIsbn);
     }
 
     // ---------------------------

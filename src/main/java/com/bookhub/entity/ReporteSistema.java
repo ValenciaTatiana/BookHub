@@ -2,6 +2,7 @@ package com.bookhub.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "reportes")
@@ -11,8 +12,15 @@ public class ReporteSistema {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
+    @Column(nullable = false)
     private String titulo;
+
+    @NotBlank
+    @Column(nullable = false, length = 2000)
     private String descripcion;
+
+    @Column(nullable = false)
     private LocalDateTime fechaGeneracion;
 
     public ReporteSistema() {

@@ -403,6 +403,7 @@
     <button type="button" class="nav-btn active" data-panel="panel-libros">Libros</button>
     <button type="button" class="nav-btn" data-panel="panel-usuarios">Usuarios</button>
     <button type="button" class="nav-btn" data-panel="panel-prestamos">Prestamos</button>
+    <button type="button" class="nav-btn" data-panel="panel-reportes">Reportes</button>
 </nav>
 <main>
     <section class="summary-grid">
@@ -704,12 +705,115 @@
             </div>
         </article>
     </section>
+
+    <section id="panel-reportes" class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Reportes</h2>
+                <p>Genera y consulta reportes del sistema, exporta CSV y crea resúmenes automáticos.</p>
+            </div>
+        </div>
+        <p class="message" id="reportes-msg" role="status" hidden></p>
+        <div class="panel-grid">
+            <article class="card">
+                <header>
+                    <h3>Crear reporte manual</h3>
+                    <p>Define un título y descripción para registrar un reporte puntual.</p>
+                </header>
+                <form id="form-crear-reporte" class="form-grid">
+                    <label>
+                        <span>Título</span>
+                        <input type="text" name="titulo" placeholder="Ej: Incidencias de inventario" required>
+                    </label>
+                    <label>
+                        <span>Descripción</span>
+                        <textarea name="descripcion" placeholder="Detalle del reporte" required style="min-height:120px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; resize: vertical;"></textarea>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="primary">Guardar reporte</button>
+                    </div>
+                </form>
+            </article>
+            <article class="card">
+                <header>
+                    <h3>Generar resumen automático</h3>
+                    <p>Crea un reporte con métricas de préstamos y top libros prestados.</p>
+                </header>
+                <div class="form-inline">
+                    <label>
+                        <span>Top libros</span>
+                        <input type="number" id="top-libros" min="1" max="20" value="5">
+                    </label>
+                    <div class="form-actions">
+                        <button type="button" class="secondary" id="btn-generar-resumen">Generar resumen</button>
+                    </div>
+                </div>
+                <p class="message subtle" id="resumen-msg" hidden></p>
+            </article>
+            <article class="card">
+                <header>
+                    <h3>Filtrar y exportar</h3>
+                    <p>Busca por título o rango de fechas y descarga CSV.</p>
+                </header>
+                <form id="form-filtro-reportes" class="form-inline">
+                    <label>
+                        <span>Título contiene</span>
+                        <input type="text" name="titulo" placeholder="Ej: prestamo">
+                    </label>
+                    <label>
+                        <span>Desde</span>
+                        <input type="datetime-local" name="desde">
+                    </label>
+                    <label>
+                        <span>Hasta</span>
+                        <input type="datetime-local" name="hasta">
+                    </label>
+                    <label>
+                        <span>Resultados</span>
+                        <select name="size">
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" class="secondary">Aplicar filtros</button>
+                        <button type="button" class="ghost" id="btn-exportar-csv">Exportar CSV</button>
+                        <button type="button" class="ghost" id="btn-reset-reportes">Limpiar</button>
+                    </div>
+                </form>
+            </article>
+        </div>
+        <article class="card">
+            <header>
+                <h3>Listado de reportes</h3>
+                <p class="description">Revisa los reportes generados y elimínalos si ya no se necesitan.</p>
+            </header>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Descripción</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tabla-reportes">
+                    <tr><td colspan="5">Sin registros</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
 </main>
 <script>
 const api = {
     libros: '/api/libros',
     usuarios: '/api/usuarios',
-    prestamos: '/api/prestamos'
+    prestamos: '/api/prestamos',
+    reportes: '/api/reportes'
 };
 
 const messageTimers = {};
@@ -809,6 +913,157 @@ async function parseResponse(res) {
     }
     const text = await res.text();
     return text || res.statusText || 'Ocurrio un error inesperado';
+}
+
+function buildQuery(params) {
+    const qp = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        const isNumber = typeof value === 'number' && Number.isFinite(value);
+        if ((typeof value === 'string' && value.trim() !== '') || isNumber) {
+            qp.append(key, isNumber ? value : value.trim());
+        }
+    });
+    return qp.toString();
+}
+
+async function cargarReportes(filtros = {}) {
+    const query = buildQuery(filtros);
+    const url = query ? `${api.reportes}?${query}` : api.reportes;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(await parseResponse(res));
+        }
+        const data = await res.json();
+        renderReportes(data);
+        setMessage('reportes-msg', `${data.length} reporte(s) cargado(s)`, 'success');
+    } catch (error) {
+        renderReportes([]);
+        setMessage('reportes-msg', error.message || 'No se pudo obtener la lista de reportes', 'error');
+    }
+}
+
+function renderReportes(reportes) {
+    const body = document.getElementById('tabla-reportes');
+    if (!body) {
+        return;
+    }
+    body.innerHTML = '';
+    if (!Array.isArray(reportes) || reportes.length === 0) {
+        body.innerHTML = '<tr><td colspan="5">Sin registros</td></tr>';
+        return;
+    }
+    reportes.forEach((reporte) => {
+        const tr = document.createElement('tr');
+        const fecha = reporte.fechaGeneracion ? reporte.fechaGeneracion.replace('T', ' ').slice(0, 19) : '-';
+        tr.innerHTML = `
+            <td>${reporte.id ?? '-'}</td>
+            <td>${reporte.titulo ?? '-'}</td>
+            <td style="max-width: 320px;">${(reporte.descripcion ?? '-').replace(/\n/g, '<br>')}</td>
+            <td>${fecha}</td>
+            <td>
+                <div class="pill-buttons">
+                    <button class="ghost small-btn danger" data-action="eliminar">Eliminar</button>
+                </div>
+            </td>
+        `;
+        tr.querySelector('[data-action="eliminar"]').addEventListener('click', () => eliminarReporte(reporte));
+        body.appendChild(tr);
+    });
+}
+
+async function crearReporte(event) {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(event.target));
+    try {
+        const res = await fetch(api.reportes, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            throw new Error(await parseResponse(res));
+        }
+        event.target.reset();
+        setMessage('reportes-msg', 'Reporte creado correctamente', 'success');
+        await cargarReportes();
+    } catch (error) {
+        setMessage('reportes-msg', error.message || 'No se pudo crear el reporte', 'error');
+    }
+}
+
+async function generarResumen() {
+    const topLibros = Number(document.getElementById('top-libros')?.value || 5);
+    try {
+        const res = await fetch(`${api.reportes}/auto/resumen-prestamos?topLibros=${topLibros || 5}`, {
+            method: 'POST'
+        });
+        if (!res.ok) {
+            throw new Error(await parseResponse(res));
+        }
+        const data = await res.json();
+        setMessage('resumen-msg', `Resumen generado (id ${data.id}).`, 'success');
+        await cargarReportes();
+    } catch (error) {
+        setMessage('resumen-msg', error.message || 'No se pudo generar el resumen', 'error');
+    }
+}
+
+async function exportarReportesCsv(filtros = {}) {
+    const query = buildQuery(filtros);
+    const url = query ? `${api.reportes}/export?${query}` : `${api.reportes}/export`;
+    try {
+        const res = await fetch(url, { headers: { Accept: 'text/csv' } });
+        if (!res.ok) {
+            throw new Error(await parseResponse(res));
+        }
+        const texto = await res.text();
+        const blob = new Blob([texto], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'reportes.csv';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+        setMessage('reportes-msg', 'CSV descargado', 'success');
+    } catch (error) {
+        setMessage('reportes-msg', error.message || 'No se pudo exportar', 'error');
+    }
+}
+
+async function eliminarReporte(reporte) {
+    const label = reporte.titulo ? `${reporte.titulo} (#${reporte.id})` : `Reporte #${reporte.id}`;
+    const confirmed = window.confirm(`Eliminar ${label}? Esta acción no se puede deshacer.`);
+    if (!confirmed) {
+        return;
+    }
+    try {
+        const res = await fetch(`${api.reportes}/${reporte.id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            throw new Error(await parseResponse(res));
+        }
+        setMessage('reportes-msg', 'Reporte eliminado correctamente', 'success');
+        await cargarReportes();
+    } catch (error) {
+        setMessage('reportes-msg', error.message || 'No se pudo eliminar el reporte', 'error');
+    }
+}
+
+function obtenerFiltrosReportes() {
+    const form = document.getElementById('form-filtro-reportes');
+    if (!form) {
+        return {};
+    }
+    const data = new FormData(form);
+    return {
+        titulo: data.get('titulo') || '',
+        desde: data.get('desde') || '',
+        hasta: data.get('hasta') || '',
+        page: 0,
+        size: Number(data.get('size') || 20)
+    };
 }
 
 async function cargarLibros(q = '') {
@@ -1032,7 +1287,7 @@ async function obtenerPrestamosActivosUsuario(id, soloCantidad = false) {
         return soloCantidad ? 0 : [];
     }
     try {
-        const res = await fetch(`${api.usuarios}/${id}/prestamos/activos`);
+        const res = await fetch(`${api.prestamos}/usuario/${id}/activos`);
         if (!res.ok) {
             throw new Error(await res.text());
         }
@@ -1232,6 +1487,7 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarLibros();
     cargarUsuarios();
     cargarPrestamosActivos();
+    cargarReportes();
 
     document.getElementById('form-crear-libro').addEventListener('submit', registrarLibro);
     document.getElementById('form-buscar-libro').addEventListener('submit', (event) => {
@@ -1256,6 +1512,18 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-ver-activos-usuario').addEventListener('click', () => verPrestamosUsuario('activos'));
     document.getElementById('btn-ver-historial-usuario').addEventListener('click', () => verPrestamosUsuario('historial'));
     document.getElementById('btn-libros-disponibles').addEventListener('click', verLibrosDisponiblesDesdePrestamos);
+
+    document.getElementById('form-crear-reporte').addEventListener('submit', crearReporte);
+    document.getElementById('form-filtro-reportes').addEventListener('submit', (event) => {
+        event.preventDefault();
+        cargarReportes(obtenerFiltrosReportes());
+    });
+    document.getElementById('btn-exportar-csv').addEventListener('click', () => exportarReportesCsv(obtenerFiltrosReportes()));
+    document.getElementById('btn-reset-reportes').addEventListener('click', () => {
+        document.getElementById('form-filtro-reportes').reset();
+        cargarReportes();
+    });
+    document.getElementById('btn-generar-resumen').addEventListener('click', generarResumen);
 });
 </script>
 </body>

@@ -21,4 +21,6 @@ public interface LibroRepository extends JpaRepository<Libro, String> {
     List<Libro> buscarPorTituloOAutor(@Param("termino") String termino);
 
     List<Libro> findAllByOrderByTituloAsc();
+
+    List<Libro> findByIsbnIn(List<String> isbns);
 }
