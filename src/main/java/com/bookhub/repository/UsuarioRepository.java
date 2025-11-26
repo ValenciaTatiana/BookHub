@@ -14,19 +14,21 @@ public class UsuarioRepository {
 
     // --- Consultas SQL ---
     private static final String SQL_INSERT_USUARIO =
-        "INSERT INTO usuarios (nombre, email, telefono) VALUES (?, ?, ?)";
+        "INSERT INTO usuarios (cedula, nombre, email, telefono) VALUES (?, ?, ?, ?)";
     private static final String SQL_SELECT_USUARIO_POR_ID =
-        "SELECT id, nombre, email, telefono FROM usuarios WHERE id = ?";
+        "SELECT id, cedula, nombre, email, telefono FROM usuarios WHERE id = ?";
     private static final String SQL_SELECT_TODOS =
-        "SELECT id, nombre, email, telefono FROM usuarios ORDER BY nombre";
+        "SELECT id, cedula, nombre, email, telefono FROM usuarios ORDER BY nombre";
     private static final String SQL_SELECT_POR_EMAIL =
-            "SELECT id, nombre, email, telefono FROM usuarios WHERE email = ?";
+            "SELECT id, cedula, nombre, email, telefono FROM usuarios WHERE email = ?";
+    private static final String SQL_SELECT_POR_CEDULA =
+            "SELECT id, cedula, nombre, email, telefono FROM usuarios WHERE cedula = ?";
     private static final String SQL_COUNT_PRESTAMOS_ACTIVOS =
         "SELECT COUNT(*) FROM prestamos p " +
         "INNER JOIN usuarios u ON u.id = p.usuario_id " +
         "WHERE p.estado = TRUE AND p.usuario_id = ?";
 
-    // --- Mapper que convierte filas SQL → objetos Usuario ---
+    // --- Mapper que convierte filas SQL en objetos Usuario ---
     private static final RowMapper<Usuario> USUARIO_ROW_MAPPER = UsuarioRepository::mapRow;
 
     private final JdbcTemplate jdbcTemplate;
@@ -39,6 +41,7 @@ public class UsuarioRepository {
     public int registrar(Usuario usuario) {
         return jdbcTemplate.update(
                 SQL_INSERT_USUARIO,
+                usuario.getCedula(),
                 usuario.getNombre(),
                 usuario.getEmail(),
                 usuario.getTelefono()
@@ -54,9 +57,19 @@ public class UsuarioRepository {
     // Buscar por email (para validar que no esté duplicado)
     public Optional<Usuario> findByEmail(String email) {
         List<Usuario> resultados = jdbcTemplate.query(
-                "SELECT id, nombre, email, telefono FROM usuarios WHERE email = ?",
+                SQL_SELECT_POR_EMAIL,
                 USUARIO_ROW_MAPPER,
                 email
+        );
+        return resultados.stream().findFirst();
+    }
+
+    // Buscar por cedula
+    public Optional<Usuario> findByCedula(String cedula) {
+        List<Usuario> resultados = jdbcTemplate.query(
+                SQL_SELECT_POR_CEDULA,
+                USUARIO_ROW_MAPPER,
+                cedula
         );
         return resultados.stream().findFirst();
     }
@@ -71,7 +84,7 @@ public class UsuarioRepository {
         return jdbcTemplate.query(SQL_SELECT_TODOS, USUARIO_ROW_MAPPER);
     }
 
-    // Contar préstamos activos
+    // Contar prestamos activos
     public int contarPrestamosActivos(int usuarioId) {
         Integer cantidad = jdbcTemplate.queryForObject(SQL_COUNT_PRESTAMOS_ACTIVOS, Integer.class, usuarioId);
         return cantidad != null ? cantidad : 0;
@@ -89,6 +102,7 @@ public class UsuarioRepository {
     private static Usuario mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Usuario(
             rs.getInt("id"),
+            rs.getString("cedula"),
             rs.getString("nombre"),
             rs.getString("email"),
             rs.getString("telefono")
@@ -96,11 +110,12 @@ public class UsuarioRepository {
     }
 
     private static final String SQL_UPDATE_USUARIO =
-            "UPDATE usuarios SET nombre = ?, email = ?, telefono = ? WHERE id = ?";
+            "UPDATE usuarios SET cedula = ?, nombre = ?, email = ?, telefono = ? WHERE id = ?";
 
     public int actualizar(Usuario usuario) {
         return jdbcTemplate.update(
                 SQL_UPDATE_USUARIO,
+                usuario.getCedula(),
                 usuario.getNombre(),
                 usuario.getEmail(),
                 usuario.getTelefono(),

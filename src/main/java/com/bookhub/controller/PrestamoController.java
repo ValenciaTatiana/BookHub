@@ -5,8 +5,16 @@ import com.bookhub.dto.PrestamoResponse;
 import com.bookhub.entity.Libro;
 import com.bookhub.service.PrestamoService;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/prestamos")
@@ -18,48 +26,56 @@ public class PrestamoController {
         this.prestamoService = prestamoService;
     }
 
-    // Registrar un nuevo préstamo (ruta usada por el frontend)
+    // Registrar un nuevo prestamo (ruta usada por el frontend)
     @PostMapping
-    public PrestamoResponse registrarPrestamoRoot(@RequestBody PrestamoRequest request) {
+    public ResponseEntity<?> registrarPrestamoRoot(@RequestBody PrestamoRequest request) {
         return registrarPrestamo(request);
     }
 
-    // Registrar un nuevo préstamo (ruta legacy /registrar)
+    // Registrar un nuevo prestamo (ruta legacy /registrar)
     @PostMapping("/registrar")
-    public PrestamoResponse registrarPrestamo(@RequestBody PrestamoRequest request) {
-        var prestamo = prestamoService.realizarPrestamo(
-            request.getUsuarioId(),
-            request.getLibroIsbn()
-        );
-        return prestamoService.toResponse(prestamo);
+    public ResponseEntity<?> registrarPrestamo(@RequestBody PrestamoRequest request) {
+        try {
+            var prestamo = prestamoService.realizarPrestamo(
+                request.getUsuarioCedula(),
+                request.getLibroIsbn()
+            );
+            return ResponseEntity.ok(prestamoService.toResponse(prestamo));
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
     }
 
-    // Registrar devolución de un libro (el frontend envía JSON en el body)
+    // Registrar devolucion de un libro (el frontend envia JSON en el body)
     @PutMapping("/devolver")
-    public String devolverLibro(@RequestBody PrestamoRequest request) {
-        prestamoService.realizarDevolucion(request.getUsuarioId(), request.getLibroIsbn());
-        return "Devolución registrada correctamente.";
+    public ResponseEntity<?> devolverLibro(@RequestBody PrestamoRequest request) {
+        try {
+            prestamoService.realizarDevolucion(request.getUsuarioCedula(), request.getLibroIsbn());
+            return ResponseEntity.ok("Devolucion registrada correctamente.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
     }
 
-    // Consultar préstamos activos por usuario (ruta usada por el frontend)
-    @GetMapping("/usuario/{usuarioId}/activos")
-    public List<PrestamoResponse> obtenerPrestamosActivos(@PathVariable Integer usuarioId) {
-        return prestamoService.consultarActivosPorUsuario(usuarioId)
+    // Consultar prestamos activos por usuario (ruta usada por el frontend)
+    @GetMapping("/usuario/{usuarioCedula}/activos")
+    public List<PrestamoResponse> obtenerPrestamosActivos(@PathVariable String usuarioCedula) {
+        return prestamoService.consultarActivosPorUsuario(usuarioCedula)
             .stream()
             .map(prestamoService::toResponse)
             .collect(Collectors.toList());
     }
 
     // Consultar historial por usuario (ruta usada por el frontend)
-    @GetMapping("/usuario/{usuarioId}/historial")
-    public List<PrestamoResponse> obtenerHistorial(@PathVariable Integer usuarioId) {
-        return prestamoService.consultarHistorialPorUsuario(usuarioId)
+    @GetMapping("/usuario/{usuarioCedula}/historial")
+    public List<PrestamoResponse> obtenerHistorial(@PathVariable String usuarioCedula) {
+        return prestamoService.consultarHistorialPorUsuario(usuarioCedula)
             .stream()
             .map(prestamoService::toResponse)
             .collect(Collectors.toList());
     }
 
-    // Consultar todos los préstamos activos del sistema
+    // Consultar todos los prestamos activos del sistema
     @GetMapping("/activos")
     public List<PrestamoResponse> obtenerTodosActivos() {
         return prestamoService.consultarPrestamosActivos()

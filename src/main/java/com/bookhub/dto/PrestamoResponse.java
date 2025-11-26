@@ -6,6 +6,7 @@ public class PrestamoResponse {
 
     private Long id;
     private Integer usuarioId;
+    private String usuarioCedula;
     private String libroIsbn;
     private LocalDate fechaPrestamo;
     private LocalDate fechaDevolucion;
@@ -28,6 +29,14 @@ public class PrestamoResponse {
 
     public void setUsuarioId(Integer usuarioId) {
         this.usuarioId = usuarioId;
+    }
+
+    public String getUsuarioCedula() {
+        return usuarioCedula;
+    }
+
+    public void setUsuarioCedula(String usuarioCedula) {
+        this.usuarioCedula = usuarioCedula;
     }
 
     public String getLibroIsbn() {

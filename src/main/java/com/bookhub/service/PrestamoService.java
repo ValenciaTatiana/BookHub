@@ -1,14 +1,13 @@
 package com.bookhub.service;
 
+import com.bookhub.dto.PrestamoRequest;
+import com.bookhub.dto.PrestamoResponse;
 import com.bookhub.entity.Libro;
 import com.bookhub.entity.Prestamo;
 import com.bookhub.repository.PrestamoRepository;
-import com.bookhub.dto.PrestamoRequest;
-import com.bookhub.dto.PrestamoResponse;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 @Service
 public class PrestamoService {
@@ -32,10 +31,11 @@ public class PrestamoService {
     }
 
     // ---------------------------
-    //      CREAR PRÉSTAMO
+    //      CREAR PRESTAMO
     // ---------------------------
-    public Prestamo realizarPrestamo(Integer usuarioId, String libroIsbn) {
+    public Prestamo realizarPrestamo(String usuarioCedula, String libroIsbn) {
 
+        Integer usuarioId = obtenerUsuarioIdPorCedula(usuarioCedula);
         usuarioService.validarUsuarioPuedePrestar(usuarioId);
         libroService.validarLibroDisponible(libroIsbn);
 
@@ -49,7 +49,6 @@ public class PrestamoService {
         nuevo.setFechaDevolucion(devolucion);
         nuevo.setEstado(true);
 
-        // 👉 AQUÍ se reemplaza registrarPrestamo() por save()
         Prestamo guardado = prestamoRepository.save(nuevo);
 
         libroService.marcarComoPrestado(libroIsbn);
@@ -57,21 +56,22 @@ public class PrestamoService {
             "PRESTAMO",
             "CREAR",
             guardado.getId() != null ? guardado.getId().toString() : "N/A",
-            "Préstamo creado: usuario " + usuarioId + ", libro " + libroIsbn
+            "Prestamo creado: usuario " + usuarioCedula + ", libro " + libroIsbn
         );
 
         return guardado;
     }
 
     // ---------------------------
-    //      DEVOLVER PRÉSTAMO
+    //      DEVOLVER PRESTAMO
     // ---------------------------
-    public void realizarDevolucion(Integer usuarioId, String libroIsbn) {
+    public void realizarDevolucion(String usuarioCedula, String libroIsbn) {
 
+        Integer usuarioId = obtenerUsuarioIdPorCedula(usuarioCedula);
         int filas = prestamoRepository.marcarComoDevuelto(libroIsbn, usuarioId);
 
         if (filas == 0) {
-            throw new IllegalStateException("No existe préstamo activo para ese usuario.");
+            throw new IllegalStateException("No existe prestamo activo para ese usuario.");
         }
 
         libroService.marcarComoDisponible(libroIsbn);
@@ -79,20 +79,21 @@ public class PrestamoService {
             "PRESTAMO",
             "DEVOLVER",
             libroIsbn,
-            "Devolución registrada para usuario " + usuarioId + ", libro " + libroIsbn
+            "Devolucion registrada para usuario " + usuarioCedula + ", libro " + libroIsbn
         );
-        // Atender siguiente reserva (si existe)
         reservaService.atenderSiguiente(libroIsbn);
     }
 
     // ---------------------------
     //      CONSULTAS
     // ---------------------------
-    public List<Prestamo> consultarActivosPorUsuario(Integer usuarioId) {
+    public List<Prestamo> consultarActivosPorUsuario(String usuarioCedula) {
+        Integer usuarioId = obtenerUsuarioIdPorCedula(usuarioCedula);
         return prestamoRepository.findActivosByUsuario(usuarioId);
     }
 
-    public List<Prestamo> consultarHistorialPorUsuario(Integer usuarioId) {
+    public List<Prestamo> consultarHistorialPorUsuario(String usuarioCedula) {
+        Integer usuarioId = obtenerUsuarioIdPorCedula(usuarioCedula);
         return prestamoRepository.findHistorialByUsuario(usuarioId);
     }
 
@@ -109,7 +110,7 @@ public class PrestamoService {
     // ---------------------------
     public Prestamo fromRequest(PrestamoRequest request) {
         Prestamo p = new Prestamo();
-        p.setUsuarioId(request.getUsuarioId());
+        p.setUsuarioId(obtenerUsuarioIdPorCedula(request.getUsuarioCedula()));
         p.setLibroIsbn(request.getLibroIsbn());
         p.setFechaPrestamo(request.getFechaPrestamo());
         p.setFechaDevolucion(request.getFechaDevolucion());
@@ -121,11 +122,30 @@ public class PrestamoService {
         PrestamoResponse r = new PrestamoResponse();
         r.setId(p.getId());
         r.setUsuarioId(p.getUsuarioId());
+        r.setUsuarioCedula(obtenerCedulaUsuario(p.getUsuarioId()));
         r.setLibroIsbn(p.getLibroIsbn());
         r.setFechaPrestamo(p.getFechaPrestamo());
         r.setFechaDevolucion(p.getFechaDevolucion());
         r.setEstado(p.getEstado());
         r.setDiasRetraso(p.calcularRetraso());
         return r;
+    }
+
+    private Integer obtenerUsuarioIdPorCedula(String cedula) {
+        if (cedula == null || cedula.isBlank()) {
+            throw new IllegalArgumentException("La cedula del usuario es obligatoria.");
+        }
+        return usuarioService.obtenerUsuarioPorCedula(cedula).getId();
+    }
+
+    private String obtenerCedulaUsuario(Integer usuarioId) {
+        if (usuarioId == null) {
+            return null;
+        }
+        try {
+            return usuarioService.obtenerUsuarioPorId(usuarioId).getCedula();
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 }

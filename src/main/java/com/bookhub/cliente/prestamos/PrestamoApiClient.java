@@ -30,11 +30,11 @@ public class PrestamoApiClient {
                 .body(PrestamoResponse[].class);
     }
 
-    public PrestamoResponse crearPrestamo(int usuarioId, String isbn,
+    public PrestamoResponse crearPrestamo(String usuarioCedula, String isbn,
                                           LocalDate fechaPrestamo, LocalDate fechaDevolucion) {
 
         PrestamoRequest req = new PrestamoRequest(
-                usuarioId,
+                usuarioCedula,
                 isbn,
                 fechaPrestamo,
                 fechaDevolucion
@@ -47,13 +47,10 @@ public class PrestamoApiClient {
                 .body(PrestamoResponse.class);
     }
 
-    public String devolverPrestamo(int usuarioId, String isbn) {
+    public String devolverPrestamo(String usuarioCedula, String isbn) {
         return client.put()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/api/prestamos/devolver")
-                        .queryParam("usuarioId", usuarioId)
-                        .queryParam("libroIsbn", isbn)
-                        .build())
+                .uri("/api/prestamos/devolver")
+                .body(new PrestamoRequest(usuarioCedula, isbn, null, null))
                 .retrieve()
                 .body(String.class);
     }

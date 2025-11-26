@@ -1,19 +1,22 @@
 INSERT INTO libros (isbn, titulo, autor, categoria, estado) VALUES
-('123456', 'Libro Ejemplo 1', 'Autor 1', 'Ficcion', TRUE),
-('789012', 'Libro Ejemplo 2', 'Autor 2', 'No Ficcion', FALSE),
-('345678', 'Historia del Mundo', 'Autor 3', 'Historia', TRUE),
-('901234', 'Ciencia Facil', 'Autor 4', 'Ciencia', TRUE),
-('567890', 'Aventura Epica', 'Autor 5', 'Fantasia', FALSE);
+('9788437604947', 'Don Quijote de la Mancha', 'Miguel de Cervantes', 'Clasico', TRUE),
+('9780307743657', 'El codigo Da Vinci', 'Dan Brown', 'Thriller', FALSE),
+('9780140449266', 'La Odisea', 'Homero', 'Epico', TRUE),
+('9786075192923', 'Cien anos de soledad', 'Gabriel Garcia Marquez', 'Ficcion', FALSE),
+('9788499890944', 'Sapiens', 'Yuval Noah Harari', 'Historia', TRUE),
+('9780062316110', 'El poder del habito', 'Charles Duhigg', 'Productividad', TRUE),
+('9789877251219', 'El nombre del viento', 'Patrick Rothfuss', 'Fantasia', FALSE);
 
-INSERT INTO usuarios (nombre, email, telefono) VALUES
-('Andres Felipe', 'andres@example.com', '1234567890'),
-('Angie Tatiana', 'angie@example.com', '0987654321'),
-('Yeison Andres', 'yeison@example.com', '1112223333'),
-('Maria Jose', 'maria@example.com', '4445556666');
+INSERT INTO usuarios (cedula, nombre, email, telefono) VALUES
+('1026589741', 'Laura Fernandez', 'laura.fernandez@example.com', '3015552211'),
+('1008945672', 'Carlos Medina', 'carlos.medina@example.com', '3127779830'),
+('1112347890', 'Valentina Lopez', 'valentina.lopez@example.com', '3001122233'),
+('1098765432', 'Andres Salazar', 'andres.salazar@example.com', '3178890044'),
+('1054321987', 'Daniela Ruiz', 'daniela.ruiz@example.com', '3185566778');
 
 INSERT INTO prestamos (fecha_prestamo, fecha_devolucion, estado, usuario_id, libro_isbn) VALUES
-('2025-09-20', '2025-10-05', TRUE, 1, '789012'),  -- Andres, prestamo activo
-('2025-09-10', '2025-09-25', FALSE, 2, '567890'), -- Angie, devuelto
-('2025-09-15', NULL, TRUE, 2, '123456'),         -- Angie, segundo prestamo activo
-('2025-09-18', '2025-10-03', TRUE, 3, '345678'), -- Yeison, prestamo activo
-('2025-09-01', '2025-09-16', FALSE, 4, '901234'); -- Maria, devuelto
+('2025-09-20', NULL, TRUE, 1, '9786075192923'),     -- Laura, prestamo activo
+('2025-09-10', '2025-09-25', FALSE, 2, '9780062316110'), -- Carlos, devuelto
+('2025-09-15', NULL, TRUE, 3, '9789877251219'),     -- Valentina, activo
+('2025-09-18', '2025-10-03', TRUE, 4, '9780307743657'),  -- Andres, activo
+('2025-09-01', '2025-09-16', FALSE, 5, '9788437604947'); -- Daniela, devuelto

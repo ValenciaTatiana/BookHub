@@ -11,6 +11,9 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    @Column(nullable = false, unique = true, length = 20)
+    private String cedula;
+
     @Column(nullable = false)
     private String nombre;
 
@@ -23,8 +26,9 @@ public class Usuario {
     public Usuario() {
     }
 
-    public Usuario(int id, String nombre, String email, String telefono) {
+    public Usuario(int id, String cedula, String nombre, String email, String telefono) {
         this.id = id;
+        this.cedula = cedula;
         this.nombre = nombre;
         this.email = email;
         this.telefono = telefono;
@@ -36,6 +40,14 @@ public class Usuario {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getCedula() {
+        return cedula;
+    }
+
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
     }
 
     public String getNombre() {

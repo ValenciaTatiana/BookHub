@@ -3,27 +3,27 @@ package com.bookhub.dto;
 import java.time.LocalDate;
 
 public class PrestamoRequest {
-    private Integer usuarioId;
+    private String usuarioCedula;
     private String libroIsbn;
     private LocalDate fechaPrestamo;
     private LocalDate fechaDevolucion;
 
     public PrestamoRequest() {}
 
-    public PrestamoRequest(Integer usuarioId, String libroIsbn,
+    public PrestamoRequest(String usuarioCedula, String libroIsbn,
                            LocalDate fechaPrestamo, LocalDate fechaDevolucion) {
-        this.usuarioId = usuarioId;
+        this.usuarioCedula = usuarioCedula;
         this.libroIsbn = libroIsbn;
         this.fechaPrestamo = fechaPrestamo;
         this.fechaDevolucion = fechaDevolucion;
     }
 
-    public Integer getUsuarioId() {
-        return usuarioId;
+    public String getUsuarioCedula() {
+        return usuarioCedula;
     }
 
-    public void setUsuarioId(Integer usuarioId) {
-        this.usuarioId = usuarioId;
+    public void setUsuarioCedula(String usuarioCedula) {
+        this.usuarioCedula = usuarioCedula;
     }
 
     public String getLibroIsbn() {

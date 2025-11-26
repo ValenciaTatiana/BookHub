@@ -45,11 +45,13 @@
         header h1 {
             font-size: 32px;
             font-weight: 600;
+            color: #000;
         }
         header p {
             margin-top: 4px;
             opacity: 0.9;
             font-size: 15px;
+            color: #000;
         }
         .link-button {
             display: inline-flex;
@@ -396,7 +398,6 @@
             <h1>BookHub Dashboard</h1>
             <p>Administra libros, usuarios y prestamos desde un mismo lugar.</p>
         </div>
-        <a class="link-button" href="/swagger-ui/index.html" target="_blank" rel="noopener">Ver API</a>
     </div>
 </header>
 <nav class="navigation">
@@ -555,6 +556,10 @@
                 </header>
                 <form id="form-crear-usuario" class="form-grid">
                     <label>
+                        <span>Cedula</span>
+                        <input type="text" name="cedula" pattern="[0-9]{6,12}" placeholder="Ej: 1026589741" required>
+                    </label>
+                    <label>
                         <span>Nombre completo</span>
                         <input type="text" name="nombre" placeholder="Nombre y apellidos" required>
                     </label>
@@ -578,8 +583,8 @@
                 </header>
                 <div class="form-inline">
                     <label>
-                        <span>ID de usuario</span>
-                        <input id="consultar-usuario-id" type="number" min="1" placeholder="Ej: 12">
+                        <span>Cedula del usuario</span>
+                        <input id="consultar-usuario-cedula" type="text" pattern="[0-9]{6,12}" placeholder="Ej: 1026589741">
                     </label>
                     <div class="form-actions">
                         <button type="button" class="secondary" id="btn-consultar-usuario">Consultar usuario</button>
@@ -598,7 +603,7 @@
                 <table>
                     <thead>
                     <tr>
-                        <th>ID</th>
+                        <th>Cedula</th>
                         <th>Nombre</th>
                         <th>Email</th>
                         <th>Telefono</th>
@@ -629,8 +634,8 @@
                 </header>
                 <form id="form-crear-prestamo" class="form-grid">
                     <label>
-                        <span>ID de usuario</span>
-                        <input type="number" name="usuarioId" min="1" placeholder="Ej: 12" required>
+                        <span>Cedula del usuario</span>
+                        <input type="text" name="usuarioCedula" pattern="[0-9]{6,12}" placeholder="Ej: 1026589741" required>
                     </label>
                     <label>
                         <span>ISBN</span>
@@ -648,8 +653,8 @@
                 </header>
                 <form id="form-devolver" class="form-grid">
                     <label>
-                        <span>ID de usuario</span>
-                        <input type="number" name="usuarioId" min="1" placeholder="Ej: 12" required>
+                        <span>Cedula del usuario</span>
+                        <input type="text" name="usuarioCedula" pattern="[0-9]{6,12}" placeholder="Ej: 1026589741" required>
                     </label>
                     <label>
                         <span>ISBN</span>
@@ -667,8 +672,8 @@
                 </header>
                 <div class="form-inline">
                     <label>
-                        <span>ID de usuario</span>
-                        <input id="prestamos-usuario-id" type="number" min="1" placeholder="Ej: 12">
+                        <span>Cedula del usuario</span>
+                        <input id="prestamos-usuario-cedula" type="text" pattern="[0-9]{6,12}" placeholder="Ej: 1026589741">
                     </label>
                     <div class="form-actions">
                         <button type="button" class="secondary" id="btn-ver-activos-usuario">Ver activos</button>
@@ -691,7 +696,7 @@
                     <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Usuario</th>
+                        <th>Cedula</th>
                         <th>Libro</th>
                         <th>Fecha prestamo</th>
                         <th>Fecha devolucion</th>
@@ -1267,10 +1272,10 @@ async function renderUsuarios(usuarios) {
     }
     const filas = await Promise.all(
         usuarios.map(async (usuario) => {
-            const activos = await obtenerPrestamosActivosUsuario(usuario.id, true);
+            const activos = await obtenerPrestamosActivosUsuario(usuario.cedula, true);
             return `
                 <tr>
-                    <td>${usuario.id}</td>
+                    <td>${usuario.cedula}</td>
                     <td>${usuario.nombre}</td>
                     <td>${usuario.email}</td>
                     <td>${usuario.telefono ?? '-'}</td>
@@ -1282,12 +1287,12 @@ async function renderUsuarios(usuarios) {
     body.innerHTML = filas.join('');
 }
 
-async function obtenerPrestamosActivosUsuario(id, soloCantidad = false) {
-    if (!isNumericValue(id)) {
+async function obtenerPrestamosActivosUsuario(cedula, soloCantidad = false) {
+    if (!isNumericValue(cedula)) {
         return soloCantidad ? 0 : [];
     }
     try {
-        const res = await fetch(`${api.prestamos}/usuario/${id}/activos`);
+        const res = await fetch(`${api.prestamos}/usuario/${cedula}/activos`);
         if (!res.ok) {
             throw new Error(await res.text());
         }
@@ -1322,31 +1327,31 @@ async function registrarUsuario(event) {
 }
 
 async function consultarUsuario() {
-    const id = document.getElementById('consultar-usuario-id').value;
-    if (!isNumericValue(id)) {
-        setMessage('usuario-detalle', 'Ingresa un ID valido', 'error');
+    const cedula = document.getElementById('consultar-usuario-cedula').value;
+    if (!isNumericValue(cedula)) {
+        setMessage('usuario-detalle', 'Ingresa una cedula valida', 'error');
         return;
     }
     try {
-        const res = await fetch(`${api.usuarios}/${id}`);
+        const res = await fetch(`${api.usuarios}/cedula/${cedula}`);
         if (!res.ok) {
             throw new Error(await res.text() || 'Usuario no encontrado');
         }
         const data = await res.json();
-        setMessage('usuario-detalle', `Usuario: ${data.nombre} | Email: ${data.email} | Tel: ${data.telefono ?? '-'}`, 'success');
+        setMessage('usuario-detalle', `Cedula: ${data.cedula} | Usuario: ${data.nombre} | Email: ${data.email} | Tel: ${data.telefono ?? '-'}`, 'success');
     } catch (error) {
         setMessage('usuario-detalle', error.message, 'error');
     }
 }
 
 async function validarPuedePrestar() {
-    const id = document.getElementById('consultar-usuario-id').value;
-    if (!isNumericValue(id)) {
-        setMessage('usuario-detalle', 'Ingresa un ID valido', 'error');
+    const cedula = document.getElementById('consultar-usuario-cedula').value;
+    if (!isNumericValue(cedula)) {
+        setMessage('usuario-detalle', 'Ingresa una cedula valida', 'error');
         return;
     }
     try {
-        const res = await fetch(`${api.usuarios}/${id}/puede-prestar`);
+        const res = await fetch(`${api.usuarios}/cedula/${cedula}/puede-prestar`);
         if (!res.ok) {
             throw new Error(await res.text());
         }
@@ -1388,7 +1393,7 @@ function renderPrestamos(prestamos) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${prestamo.id ?? '-'}</td>
-            <td>${prestamo.usuarioId}</td>
+            <td>${prestamo.usuarioCedula ?? '-'}</td>
             <td>${prestamo.libroIsbn}</td>
             <td>${prestamo.fechaPrestamo ?? '-'}</td>
             <td>${prestamo.fechaDevolucion ?? '-'}</td>
@@ -1401,7 +1406,7 @@ function renderPrestamos(prestamos) {
 async function crearPrestamo(event) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target));
-    data.usuarioId = Number(data.usuarioId);
+    data.usuarioCedula = String(data.usuarioCedula || '').trim();
     try {
         const res = await fetch(api.prestamos, {
             method: 'POST',
@@ -1424,7 +1429,7 @@ async function crearPrestamo(event) {
 async function devolverPrestamo(event) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.target));
-    data.usuarioId = Number(data.usuarioId);
+    data.usuarioCedula = String(data.usuarioCedula || '').trim();
     try {
         const res = await fetch(`${api.prestamos}/devolver`, {
             method: 'PUT',
@@ -1445,14 +1450,14 @@ async function devolverPrestamo(event) {
 }
 
 async function verPrestamosUsuario(tipo) {
-    const id = document.getElementById('prestamos-usuario-id').value;
-    if (!isNumericValue(id)) {
-        setMessage('prestamos-msg', 'Ingresa un ID de usuario', 'error');
+    const cedula = document.getElementById('prestamos-usuario-cedula').value;
+    if (!isNumericValue(cedula)) {
+        setMessage('prestamos-msg', 'Ingresa la cedula del usuario', 'error');
         return;
     }
     const endpoint = tipo === 'historial' ? 'historial' : 'activos';
     try {
-        const res = await fetch(`${api.prestamos}/usuario/${id}/${endpoint}`);
+        const res = await fetch(`${api.prestamos}/usuario/${cedula}/${endpoint}`);
         if (!res.ok) {
             throw new Error(await res.text());
         }
@@ -1528,3 +1533,11 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
