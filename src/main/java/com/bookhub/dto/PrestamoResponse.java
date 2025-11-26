@@ -3,46 +3,71 @@ package com.bookhub.dto;
 import java.time.LocalDate;
 
 public class PrestamoResponse {
-    private Integer id;
+
+    private Long id;
     private Integer usuarioId;
     private String libroIsbn;
     private LocalDate fechaPrestamo;
     private LocalDate fechaDevolucion;
     private Boolean estado;
-    private Long diasRetraso;
+    private Integer diasRetraso;
 
     public PrestamoResponse() {}
 
-    public PrestamoResponse(Integer id, Integer usuarioId, String libroIsbn,
-                            LocalDate fechaPrestamo, LocalDate fechaDevolucion,
-                            Boolean estado, Long diasRetraso) {
-        this.id = id;
-        this.usuarioId = usuarioId;
-        this.libroIsbn = libroIsbn;
-        this.fechaPrestamo = fechaPrestamo;
-        this.fechaDevolucion = fechaDevolucion;
-        this.estado = estado;
-        this.diasRetraso = diasRetraso;
+    public Long getId() {
+        return id;
     }
 
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Integer getUsuarioId() { return usuarioId; }
-    public void setUsuarioId(Integer usuarioId) { this.usuarioId = usuarioId; }
+    public Integer getUsuarioId() {
+        return usuarioId;
+    }
 
-    public String getLibroIsbn() { return libroIsbn; }
-    public void setLibroIsbn(String libroIsbn) { this.libroIsbn = libroIsbn; }
+    public void setUsuarioId(Integer usuarioId) {
+        this.usuarioId = usuarioId;
+    }
 
-    public LocalDate getFechaPrestamo() { return fechaPrestamo; }
-    public void setFechaPrestamo(LocalDate fechaPrestamo) { this.fechaPrestamo = fechaPrestamo; }
+    public String getLibroIsbn() {
+        return libroIsbn;
+    }
 
-    public LocalDate getFechaDevolucion() { return fechaDevolucion; }
-    public void setFechaDevolucion(LocalDate fechaDevolucion) { this.fechaDevolucion = fechaDevolucion; }
+    public void setLibroIsbn(String libroIsbn) {
+        this.libroIsbn = libroIsbn;
+    }
 
-    public Boolean getEstado() { return estado; }
-    public void setEstado(Boolean estado) { this.estado = estado; }
+    public LocalDate getFechaPrestamo() {
+        return fechaPrestamo;
+    }
 
-    public Long getDiasRetraso() { return diasRetraso; }
-    public void setDiasRetraso(Long diasRetraso) { this.diasRetraso = diasRetraso; }
+    public void setFechaPrestamo(LocalDate fechaPrestamo) {
+        this.fechaPrestamo = fechaPrestamo;
+    }
+
+    public LocalDate getFechaDevolucion() {
+        return fechaDevolucion;
+    }
+
+    public void setFechaDevolucion(LocalDate fechaDevolucion) {
+        this.fechaDevolucion = fechaDevolucion;
+    }
+
+    public Boolean getEstado() {
+        return estado;
+    }
+
+    public void setEstado(Boolean estado) {
+        this.estado = estado;
+    }
+
+    public Integer getDiasRetraso() {
+        return diasRetraso;
+    }
+
+    public void setDiasRetraso(Integer diasRetraso) {
+        this.diasRetraso = diasRetraso;
+    }
 }
+

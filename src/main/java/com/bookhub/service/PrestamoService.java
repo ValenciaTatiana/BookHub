@@ -5,9 +5,10 @@ import com.bookhub.entity.Prestamo;
 import com.bookhub.repository.PrestamoRepository;
 import com.bookhub.dto.PrestamoRequest;
 import com.bookhub.dto.PrestamoResponse;
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
-import org.springframework.stereotype.Service;
 
 @Service
 public class PrestamoService {
@@ -16,43 +17,57 @@ public class PrestamoService {
     private final LibroService libroService;
     private final UsuarioService usuarioService;
 
-    public PrestamoService(PrestamoRepository prestamoRepository, LibroService libroService, UsuarioService usuarioService) {
+    public PrestamoService(PrestamoRepository prestamoRepository,
+                           LibroService libroService,
+                           UsuarioService usuarioService) {
         this.prestamoRepository = prestamoRepository;
         this.libroService = libroService;
         this.usuarioService = usuarioService;
     }
 
+    // ---------------------------
+    //      CREAR PRÉSTAMO
+    // ---------------------------
     public Prestamo realizarPrestamo(Integer usuarioId, String libroIsbn) {
+
         usuarioService.validarUsuarioPuedePrestar(usuarioId);
         libroService.validarLibroDisponible(libroIsbn);
 
-        LocalDate fechaPrestamo = LocalDate.now();
-        LocalDate fechaDevolucion = fechaPrestamo.plusDays(15);
+        LocalDate hoy = LocalDate.now();
+        LocalDate devolucion = hoy.plusDays(15);
 
-        Prestamo nuevoPrestamo = new Prestamo();
-        nuevoPrestamo.setUsuarioId(usuarioId);
-        nuevoPrestamo.setLibroIsbn(libroIsbn);
-        nuevoPrestamo.setFechaPrestamo(fechaPrestamo);
-        nuevoPrestamo.setFechaDevolucion(fechaDevolucion);
-        nuevoPrestamo.setEstado(true);
+        Prestamo nuevo = new Prestamo();
+        nuevo.setUsuarioId(usuarioId);
+        nuevo.setLibroIsbn(libroIsbn);
+        nuevo.setFechaPrestamo(hoy);
+        nuevo.setFechaDevolucion(devolucion);
+        nuevo.setEstado(true);
 
-        int filas = prestamoRepository.registrarPrestamo(nuevoPrestamo);
-        if (filas == 0) {
-            throw new IllegalStateException("No se pudo registrar el prestamo para el libro " + libroIsbn);
-        }
+        // 👉 AQUÍ se reemplaza registrarPrestamo() por save()
+        Prestamo guardado = prestamoRepository.save(nuevo);
 
         libroService.marcarComoPrestado(libroIsbn);
-        return nuevoPrestamo;
+
+        return guardado;
     }
 
+    // ---------------------------
+    //      DEVOLVER PRÉSTAMO
+    // ---------------------------
     public void realizarDevolucion(Integer usuarioId, String libroIsbn) {
-        int filasAfectadas = prestamoRepository.marcarComoDevuelto(libroIsbn, usuarioId);
-        if (filasAfectadas == 0) {
-            throw new IllegalStateException("No se encontro prestamo activo para el usuario " + usuarioId);
+
+        int filas = prestamoRepository.marcarComoDevuelto(libroIsbn, usuarioId);
+
+        if (filas == 0) {
+            throw new IllegalStateException("No existe préstamo activo para ese usuario.");
         }
+
         libroService.marcarComoDisponible(libroIsbn);
     }
 
+    // ---------------------------
+    //      CONSULTAS
+    // ---------------------------
     public List<Prestamo> consultarActivosPorUsuario(Integer usuarioId) {
         return prestamoRepository.findActivosByUsuario(usuarioId);
     }
@@ -69,27 +84,28 @@ public class PrestamoService {
         return libroService.listarLibrosDisponibles();
     }
 
-    // ✅ Deja solo estos dos métodos, sin duplicar
+    // ---------------------------
+    //   Mappers Request/Response
+    // ---------------------------
     public Prestamo fromRequest(PrestamoRequest request) {
-        Prestamo prestamo = new Prestamo();
-        prestamo.setUsuarioId(request.getUsuarioId());
-        prestamo.setLibroIsbn(request.getLibroIsbn());
-        prestamo.setFechaPrestamo(request.getFechaPrestamo());
-        prestamo.setFechaDevolucion(request.getFechaDevolucion());
-        prestamo.setEstado(true); // valor por defecto
-        return prestamo;
+        Prestamo p = new Prestamo();
+        p.setUsuarioId(request.getUsuarioId());
+        p.setLibroIsbn(request.getLibroIsbn());
+        p.setFechaPrestamo(request.getFechaPrestamo());
+        p.setFechaDevolucion(request.getFechaDevolucion());
+        p.setEstado(true);
+        return p;
     }
 
-    public PrestamoResponse toResponse(Prestamo prestamo) {
-        PrestamoResponse response = new PrestamoResponse();
-        response.setId(prestamo.getId());
-        response.setUsuarioId(prestamo.getUsuarioId());
-        response.setLibroIsbn(prestamo.getLibroIsbn());
-        response.setFechaPrestamo(prestamo.getFechaPrestamo());
-        response.setFechaDevolucion(prestamo.getFechaDevolucion());
-        response.setEstado(prestamo.getEstado());
-        response.setDiasRetraso(prestamo.calcularRetraso());
-        return response;
+    public PrestamoResponse toResponse(Prestamo p) {
+        PrestamoResponse r = new PrestamoResponse();
+        r.setId(p.getId());
+        r.setUsuarioId(p.getUsuarioId());
+        r.setLibroIsbn(p.getLibroIsbn());
+        r.setFechaPrestamo(p.getFechaPrestamo());
+        r.setFechaDevolucion(p.getFechaDevolucion());
+        r.setEstado(p.getEstado());
+        r.setDiasRetraso(p.calcularRetraso());
+        return r;
     }
 }
-
