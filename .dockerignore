@@ -1,0 +1,11 @@
+target
+.git
+.gitignore
+.gitattributes
+README.md
+node_modules
+*.log
+logs
+.idea
+.vscode
+*.iml
