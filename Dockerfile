@@ -4,6 +4,8 @@ WORKDIR /app
 COPY .mvn .mvn
 COPY mvnw mvnw
 COPY pom.xml pom.xml
+# Asegura permisos de ejecución del wrapper
+RUN chmod +x mvnw
 RUN ./mvnw -q -B -DskipTests dependency:go-offline
 COPY src src
 RUN ./mvnw -q -B -DskipTests clean package
